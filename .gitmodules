@@ -1,0 +1,5 @@
+
+[submodule "themes/adidoks"]
+	path = themes/adidoks
+	url = https://github.com/pvshvp-oss/adidoks.git
+

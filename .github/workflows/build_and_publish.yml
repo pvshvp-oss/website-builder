@@ -1,0 +1,63 @@
+name: Build and Publish
+run-name: Building and Publication triggered by ${{ github.actor }}
+on:
+  workflow_dispatch:
+  workflow_call:
+  push:
+      branches:
+        - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: 🏗 Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🎟 Checkout Git Repository
+        id: checkout_repository_step
+        uses: actions/checkout@v4        
+      - name: 🔨 Build Project
+        id: build_project_step
+        uses: shalzz/zola-deploy-action@v0.18.0
+        env:
+          BUILD_ONLY: true
+      - name: ⬆ Upload Artifact
+        id: upload_artifact_step
+        uses: actions/upload-artifact@v3
+        with: 
+          name: Website
+          path: dist
+          if-no-files-found: error
+  release:  
+    needs: build        
+    name: 🎉 Publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇ Download Artifact
+        id: download_artiface_step
+        uses: actions/download-artifact@v3
+        with:
+          name: Website
+          path: dist
+      - name: ✔️ Verify Artifact
+        id: verify_artifact_step
+        run: |
+          echo "Contents of the dist directory after downloading the artifact: "
+          ls -l dist
+      - name: ➡️ Push to the Website Repository
+        id: push_website_step
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+        with:          
+          source-directory: 'dist'
+          destination-github-username: 'pvshvp-oss'
+          destination-repository-name: 'pvshvp-oss.github.io'
+          user-name: 'pvshvp-oss'
+          user-email: pvshvp-oss@gmail.com
+          target-branch: main
+          create-target-branch-if-needed: true
+       
